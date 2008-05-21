@@ -1,0 +1,5 @@
+# config file path
+#CONFIG="/etc/unbound/unbound.conf"
+
+# automatic chroot setup in the init script
+CHROOT=yes
