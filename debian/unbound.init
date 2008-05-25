@@ -12,10 +12,6 @@ test -x $DAEMON || exit 0
 
 test -f /etc/default/$NAME && . /etc/default/$NAME
 
-if [ -n "$CONFIG" ]; then
-    OPTIONS="-c $CONFIG"
-fi
-
 install_chroot() {
     if [ "$CHROOT" != "no" ]; then
         [ -d $CHROOT_DIR/etc ] || mkdir -p $CHROOT_DIR/etc
@@ -56,7 +52,7 @@ case "$1" in
         if ! already_running; then
             install_chroot
         fi
-        if start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --name $NAME --startas $DAEMON -- $OPTIONS; then
+        if start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --name $NAME --startas $DAEMON -- $DAEMON_OPTS; then
             log_end_msg 0
         else
             log_end_msg 1
@@ -78,7 +74,7 @@ case "$1" in
         start-stop-daemon --stop --quiet --pidfile $PIDFILE --name $NAME --retry 5
         uninstall_chroot
         install_chroot
-        if start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --name $NAME --startas $DAEMON -- $OPTIONS; then
+        if start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --name $NAME --startas $DAEMON -- $DAEMON_OPTS; then
             log_end_msg 0
         else
             log_end_msg 1
