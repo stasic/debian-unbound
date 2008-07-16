@@ -14,6 +14,7 @@ test -f /etc/default/$NAME && . /etc/default/$NAME
 
 install_chroot() {
     if [ "$CHROOT" = "yes" ]; then
+        uninstall_chroot
         [ -d $CHROOT_DIR/etc ] || mkdir -p $CHROOT_DIR/etc
         [ -d $CHROOT_DIR/dev ] || mkdir -p $CHROOT_DIR/dev
         [ -c $CHROOT_DIR/dev/random ] || ( cd $CHROOT_DIR/dev && MAKEDEV random )
@@ -33,7 +34,7 @@ uninstall_chroot() {
 }
 
 already_running() {
-    return start-stop-daemon --start --pidfile $PIDFILE \
+    start-stop-daemon --start --pidfile $PIDFILE \
         --startas $DAEMON --test >/dev/null 2>&1
 }
 
@@ -57,7 +58,6 @@ case "$1" in
         else
             log_end_msg 1
         fi
-        uninstall_chroot
         ;;
 
     restart|force-reload)

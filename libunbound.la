@@ -8,7 +8,7 @@
 dlname='libunbound.so.0'
 
 # Names of this library.
-library_names='libunbound.so.0.12.0 libunbound.so.0 libunbound.so'
+library_names='libunbound.so.0.13.0 libunbound.so.0 libunbound.so'
 
 # The name of the static archive.
 old_library='libunbound.a'
@@ -17,8 +17,8 @@ old_library='libunbound.a'
 dependency_libs=' -L/usr/lib -lldns -lcrypto'
 
 # Version information for libunbound.
-current=12
-age=12
+current=13
+age=13
 revision=0
 
 # Is this an already installed library?

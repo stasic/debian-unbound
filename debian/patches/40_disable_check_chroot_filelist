@@ -1,10 +1,10 @@
 disable the check_chroot_filelist calls in unbound-checkconf since we copy
 /etc/unbound to the chroot dir in the init script
-Index: unbound-1.0.0/smallapp/unbound-checkconf.c
+Index: unbound-1.0.1/smallapp/unbound-checkconf.c
 ===================================================================
---- unbound-1.0.0.orig/smallapp/unbound-checkconf.c	2008-05-25 01:29:54.963462343 -0400
-+++ unbound-1.0.0/smallapp/unbound-checkconf.c	2008-05-25 01:31:57.811471789 -0400
-@@ -321,6 +321,7 @@
+--- unbound-1.0.1.orig/smallapp/unbound-checkconf.c	2008-05-28 10:29:29.000000000 -0400
++++ unbound-1.0.1/smallapp/unbound-checkconf.c	2008-07-16 12:43:35.149376480 -0400
+@@ -323,6 +323,7 @@
  		!is_dir(cfg->chrootdir)) {
  		fatal_exit("bad chroot directory");
  	}
@@ -12,7 +12,7 @@ Index: unbound-1.0.0/smallapp/unbound-checkconf.c
  	if(cfg->chrootdir && cfg->chrootdir[0]) {
  		char buf[10240];
  		buf[0] = 0;
-@@ -334,6 +335,7 @@
+@@ -336,6 +337,7 @@
  			fatal_exit("config file %s is not inside chroot %s",
  				buf, cfg->chrootdir);
  	}
@@ -20,7 +20,7 @@ Index: unbound-1.0.0/smallapp/unbound-checkconf.c
  	if(cfg->directory && cfg->directory[0] && !is_dir(
  		fname_after_chroot(cfg->directory, cfg, 0))) {
  		fatal_exit("bad chdir directory");
-@@ -352,12 +354,14 @@
+@@ -354,12 +356,14 @@
  		}
  	}
  
