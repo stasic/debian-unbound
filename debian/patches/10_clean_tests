@@ -1,9 +1,9 @@
 make realclean: remove test binaries
-Index: unbound-1.0.0/Makefile.in
+Index: unbound-1.0.1/Makefile.in
 ===================================================================
---- unbound-1.0.0.orig/Makefile.in	2008-05-22 12:38:51.955492184 -0400
-+++ unbound-1.0.0/Makefile.in	2008-05-22 12:39:04.720129984 -0400
-@@ -234,6 +234,7 @@
+--- unbound-1.0.1.orig/Makefile.in	2008-08-02 17:51:58.530591375 -0400
++++ unbound-1.0.1/Makefile.in	2008-08-02 17:55:14.450592240 -0400
+@@ -235,6 +235,7 @@
  	rm -f config.status config.log config.h.in config.h
  	rm -f configure config.sub config.guess ltmain.sh aclocal.m4 libtool
  	rm -f util/configlexer.c util/configparser.c util/configparser.h
