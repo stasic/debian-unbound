@@ -323,6 +323,7 @@ morechecks(struct config_file* cfg, char* fname)
 		!is_dir(cfg->chrootdir)) {
 		fatal_exit("bad chroot directory");
 	}
+	/*
 	if(cfg->chrootdir && cfg->chrootdir[0]) {
 		char buf[10240];
 		buf[0] = 0;
@@ -336,6 +337,7 @@ morechecks(struct config_file* cfg, char* fname)
 			fatal_exit("config file %s is not inside chroot %s",
 				buf, cfg->chrootdir);
 	}
+	*/
 	if(cfg->directory && cfg->directory[0] && !is_dir(
 		fname_after_chroot(cfg->directory, cfg, 0))) {
 		fatal_exit("bad chdir directory");
@@ -354,12 +356,14 @@ morechecks(struct config_file* cfg, char* fname)
 		}
 	}
 
+	/*
 	check_chroot_filelist("file with root-hints", 
 		cfg->root_hints, cfg->chrootdir, cfg);
 	check_chroot_filelist("trust-anchor-file", 
 		cfg->trust_anchor_file_list, cfg->chrootdir, cfg);
 	check_chroot_filelist("trusted-keys-file", 
 		cfg->trusted_keys_file_list, cfg->chrootdir, cfg);
+	*/
 	/* remove chroot setting so that modules are not stripping pathnames*/
 	free(cfg->chrootdir);
 	cfg->chrootdir = NULL;
