@@ -227,7 +227,7 @@ main(int argc, char* argv[])
 	while( (c=getopt(argc, argv, "2ho:p:")) != -1) {
 		switch(c) {
 		case '2':
-#ifdef HAVE_EVP_SHA256
+#if defined(HAVE_EVP_SHA256) && defined(USE_SHA2)
 			printf("SHA256 supported\n");
 			exit(0);
 #else
@@ -318,4 +318,34 @@ int remote_control_callback(struct comm_point* ATTR_UNUSED(c),
 	log_assert(0);
 	return 0;
 }
+
+void wsvc_command_option(const char* ATTR_UNUSED(wopt), 
+	const char* ATTR_UNUSED(cfgfile), int ATTR_UNUSED(v), 
+	int ATTR_UNUSED(c))
+{
+	log_assert(0);
+}
+
+void wsvc_setup_worker(struct worker* ATTR_UNUSED(worker))
+{
+	/* do nothing */
+}
+
+void wsvc_desetup_worker(struct worker* ATTR_UNUSED(worker))
+{
+	/* do nothing */
+}
+
+#ifdef UB_ON_WINDOWS
+void worker_win_stop_cb(int ATTR_UNUSED(fd), short ATTR_UNUSED(ev),
+	void* ATTR_UNUSED(arg))
+{
+	log_assert(0);
+}
+
+void wsvc_cron_cb(void* ATTR_UNUSED(arg))
+{
+	log_assert(0);
+}
+#endif /* UB_ON_WINDOWS */
 

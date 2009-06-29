@@ -188,10 +188,15 @@ mesh_create(struct module_stack* stack, struct module_env* env)
 
 /** help mesh delete delete mesh states */
 static void
-mesh_delete_helper(rbnode_t* n, void* ATTR_UNUSED(arg))
+mesh_delete_helper(rbnode_t* n)
 {
 	struct mesh_state* mstate = (struct mesh_state*)n->key;
-	mesh_state_cleanup(mstate);
+	/* perform a full delete, not only 'cleanup' routine,
+	 * because other callbacks expect a clean state in the mesh.
+	 * For 're-entrant' calls */
+	mesh_state_delete(&mstate->s);
+	/* but because these delete the items from the tree, postorder
+	 * traversal and rbtree rebalancing do not work together */
 }
 
 void 
@@ -200,9 +205,30 @@ mesh_delete(struct mesh_area* mesh)
 	if(!mesh)
 		return;
 	/* free all query states */
-	traverse_postorder(&mesh->all, &mesh_delete_helper, NULL);
+	while(mesh->all.count)
+		mesh_delete_helper(mesh->all.root);
 	timehist_delete(mesh->histogram);
 	free(mesh);
+}
+
+void
+mesh_delete_all(struct mesh_area* mesh)
+{
+	/* free all query states */
+	while(mesh->all.count)
+		mesh_delete_helper(mesh->all.root);
+	mesh->stats_dropped += mesh->num_reply_addrs;
+	/* clear mesh area references */
+	rbtree_init(&mesh->run, &mesh_state_compare);
+	rbtree_init(&mesh->all, &mesh_state_compare);
+	mesh->num_reply_addrs = 0;
+	mesh->num_reply_states = 0;
+	mesh->num_detached_states = 0;
+	mesh->num_forever_states = 0;
+	mesh->forever_first = NULL;
+	mesh->forever_last = NULL;
+	mesh->jostle_first = NULL;
+	mesh->jostle_last = NULL;
 }
 
 int mesh_make_new_space(struct mesh_area* mesh)

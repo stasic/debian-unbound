@@ -238,6 +238,7 @@ int
 forwards_apply_cfg(struct iter_forwards* fwd, struct config_file* cfg)
 {
 	free(fwd->tree);
+	regional_free_all(fwd->region);
 	fwd->tree = rbtree_create(fwd_cmp);
 	if(!fwd->tree)
 		return 0;
@@ -288,5 +289,30 @@ forwards_get_mem(struct iter_forwards* fwd)
 {
 	if(!fwd)
 		return 0;
-	return sizeof(*fwd) + regional_get_mem(fwd->region);
+	return sizeof(*fwd) + sizeof(*fwd->tree) + 
+		regional_get_mem(fwd->region);
 }
+
+int 
+forwards_add_zone(struct iter_forwards* fwd, uint16_t c, struct delegpt* dp)
+{
+	if(!forwards_insert(fwd, c, dp))
+		return 0;
+	fwd_init_parents(fwd);
+	return 1;
+}
+
+void 
+forwards_delete_zone(struct iter_forwards* fwd, uint16_t c, uint8_t* nm)
+{
+	struct iter_forward_zone key;
+	key.node.key = &key;
+	key.dclass = c;
+	key.name = nm;
+	key.namelabs = dname_count_size_labels(nm, &key.namelen);
+	if(!rbtree_search(fwd->tree, &key))
+		return; /* nothing to do */
+	(void)rbtree_delete(fwd->tree, &key);
+	fwd_init_parents(fwd);
+}
+

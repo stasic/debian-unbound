@@ -46,7 +46,7 @@
      COLON = 262,
      ANY = 263,
      ZONESTR = 264,
-     STRING = 265,
+     STRING_ARG = 265,
      VAR_SERVER = 266,
      VAR_VERBOSITY = 267,
      VAR_NUM_THREADS = 268,
@@ -136,7 +136,14 @@
      VAR_LOCAL_DATA_PTR = 352,
      VAR_JOSTLE_TIMEOUT = 353,
      VAR_STUB_PRIME = 354,
-     VAR_UNWANTED_REPLY_THRESHOLD = 355
+     VAR_UNWANTED_REPLY_THRESHOLD = 355,
+     VAR_LOG_TIME_ASCII = 356,
+     VAR_DOMAIN_INSECURE = 357,
+     VAR_PYTHON = 358,
+     VAR_PYTHON_SCRIPT = 359,
+     VAR_VAL_SIG_SKEW_MIN = 360,
+     VAR_VAL_SIG_SKEW_MAX = 361,
+     VAR_CACHE_MIN_TTL = 362
    };
 #endif
 /* Tokens.  */
@@ -147,7 +154,7 @@
 #define COLON 262
 #define ANY 263
 #define ZONESTR 264
-#define STRING 265
+#define STRING_ARG 265
 #define VAR_SERVER 266
 #define VAR_VERBOSITY 267
 #define VAR_NUM_THREADS 268
@@ -238,6 +245,13 @@
 #define VAR_JOSTLE_TIMEOUT 353
 #define VAR_STUB_PRIME 354
 #define VAR_UNWANTED_REPLY_THRESHOLD 355
+#define VAR_LOG_TIME_ASCII 356
+#define VAR_DOMAIN_INSECURE 357
+#define VAR_PYTHON 358
+#define VAR_PYTHON_SCRIPT 359
+#define VAR_VAL_SIG_SKEW_MIN 360
+#define VAR_VAL_SIG_SKEW_MAX 361
+#define VAR_CACHE_MIN_TTL 362
 
 
 
@@ -249,7 +263,7 @@ typedef union YYSTYPE
 	char*	str;
 }
 /* Line 1489 of yacc.c.  */
-#line 253 "util/configparser.h"
+#line 267 "util/configparser.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1

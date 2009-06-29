@@ -45,6 +45,9 @@
 #include "util/locks.h"
 #include "util/alloc.h"
 #include "services/modstack.h"
+#ifdef UB_ON_WINDOWS
+#  include "util/winsock_event.h"
+#endif
 struct config_file;
 struct worker;
 struct listen_port;
@@ -131,5 +134,12 @@ void daemon_cleanup(struct daemon* daemon);
  * @param daemon: the daemon.
  */
 void daemon_delete(struct daemon* daemon);
+
+/**
+ * Apply config settings.
+ * @param daemon: the daemon.
+ * @param cfg: new config settings.
+ */
+void daemon_apply_cfg(struct daemon* daemon, struct config_file* cfg);
 
 #endif /* DAEMON_H */

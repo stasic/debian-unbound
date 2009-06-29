@@ -122,6 +122,8 @@ val_apply_cfg(struct module_env* env, struct val_env* val_env,
 		return 0;
 	}
 	val_env->date_override = cfg->val_date_override;
+	val_env->skew_min = cfg->val_sig_skew_min;
+	val_env->skew_max = cfg->val_sig_skew_max;
 	c = cfg_count_numbers(cfg->val_nsec3_key_iterations);
 	if(c < 1 || (c&1)) {
 		log_err("validator: unparseable or odd nsec3 key "
@@ -280,6 +282,14 @@ needs_validation(struct module_qstate* qstate, int ret_rc,
 		verbose(VERB_ALGO, "cannot validate non-answer, rcode %s",
 			ldns_lookup_by_id(ldns_rcodes, rcode)?
 			ldns_lookup_by_id(ldns_rcodes, rcode)->name:"??");
+		return 0;
+	}
+
+	/* cannot validate positive RRSIG response. (negatives can) */
+	if(qstate->qinfo.qtype == LDNS_RR_TYPE_RRSIG &&
+		rcode == LDNS_RCODE_NOERROR && ret_msg &&
+		ret_msg->rep->an_numrrsets > 0) {
+		verbose(VERB_ALGO, "cannot validate RRSIG, no sigs on sigs.");
 		return 0;
 	}
 
@@ -1209,6 +1219,18 @@ processInit(struct module_qstate* qstate, struct val_qstate* vq,
 	else if(vq->key_entry == NULL || (vq->trust_anchor &&
 		dname_strict_subdomain_c(vq->trust_anchor->name, 
 		vq->key_entry->name))) {
+		/* trust anchor is an 'unsigned' trust anchor */
+		if(vq->trust_anchor && vq->trust_anchor->numDS == 0 &&
+			vq->trust_anchor->numDNSKEY == 0) {
+			vq->chase_reply->security = sec_status_insecure;
+			val_mark_insecure(vq->chase_reply, 
+				vq->trust_anchor->name, 
+				qstate->env->rrset_cache, qstate->env);
+			vq->dlv_checked=1; /* skip DLV check */
+			/* go to finished state to cache this result */
+			vq->state = VAL_FINISHED_STATE;
+			return 1;
+		}
 		/* fire off a trust anchor priming query. */
 		verbose(VERB_DETAIL, "prime trust anchor");
 		if(!prime_trust_anchor(qstate, vq, id, vq->trust_anchor))
@@ -1222,7 +1244,7 @@ processInit(struct module_qstate* qstate, struct val_qstate* vq,
 		 * However, we do set the status to INSECURE, since it is 
 		 * essentially proven insecure. */
 		vq->chase_reply->security = sec_status_insecure;
-		val_mark_insecure(vq->chase_reply, vq->key_entry, 
+		val_mark_insecure(vq->chase_reply, vq->key_entry->name, 
 			qstate->env->rrset_cache, qstate->env);
 		/* go to finished state to cache this result */
 		vq->state = VAL_FINISHED_STATE;
@@ -1394,7 +1416,7 @@ processValidate(struct module_qstate* qstate, struct val_qstate* vq,
 		verbose(VERB_DETAIL, "Verified that %sresponse is INSECURE",
 			vq->signer_name?"":"unsigned ");
 		vq->chase_reply->security = sec_status_insecure;
-		val_mark_insecure(vq->chase_reply, vq->key_entry, 
+		val_mark_insecure(vq->chase_reply, vq->key_entry->name, 
 			qstate->env->rrset_cache, qstate->env);
 		return 1;
 	}
@@ -1909,6 +1931,9 @@ val_operate(struct module_qstate* qstate, enum module_ev event, int id,
 		if(!needs_validation(qstate, qstate->return_rcode, 
 			qstate->return_msg)) {
 			/* no need to validate this */
+			if(qstate->return_msg)
+				qstate->return_msg->rep->security =
+					sec_status_indeterminate;
 			qstate->ext_state[id] = module_finished;
 			return;
 		}
