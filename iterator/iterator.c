@@ -592,21 +592,27 @@ prime_root(struct module_qstate* qstate, struct iter_qstate* iq,
  * @param iq: iterator query state.
  * @param ie: iterator global state.
  * @param id: module id.
- * @param qname: request name.
- * @param qclass: the class to prime.
+ * @param q: request name.
  * @return true if a priming subrequest was made, false if not. The will only
  *         issue a priming request if it detects an unprimed stub.
  */
 static int
 prime_stub(struct module_qstate* qstate, struct iter_qstate* iq, 
-	struct iter_env* ie, int id, uint8_t* qname, uint16_t qclass)
+	struct iter_env* ie, int id, struct query_info* q)
 {
 	/* Lookup the stub hint. This will return null if the stub doesn't 
 	 * need to be re-primed. */
-	struct iter_hints_stub* stub = hints_lookup_stub(ie->hints, 
-		qname, qclass, iq->dp);
+	struct iter_hints_stub* stub;
 	struct delegpt* stub_dp;
 	struct module_qstate* subq;
+	uint8_t* delname = q->qname;
+	size_t delnamelen = q->qname_len;
+
+	if(q->qtype == LDNS_RR_TYPE_DS && !dname_is_root(q->qname))
+		/* remove first label, but not for root */
+		dname_remove_label(&delname, &delnamelen);
+
+	stub = hints_lookup_stub(ie->hints, delname, q->qclass, iq->dp);
 	/* The stub (if there is one) does not need priming. */
 	if(!stub)
 		return 0;
@@ -623,18 +629,18 @@ prime_stub(struct module_qstate* qstate, struct iter_qstate* iq,
 			return 1; /* return 1 to make module stop, with error */
 		}
 		log_nametypeclass(VERB_DETAIL, "use stub", stub_dp->name, 
-			LDNS_RR_TYPE_NS, qclass);
+			LDNS_RR_TYPE_NS, q->qclass);
 		return 0;
 	}
 
 	/* Otherwise, we need to (re)prime the stub. */
 	log_nametypeclass(VERB_DETAIL, "priming stub", stub_dp->name, 
-		LDNS_RR_TYPE_NS, qclass);
+		LDNS_RR_TYPE_NS, q->qclass);
 
 	/* Stub priming events start at the QUERYTARGETS state to avoid the
 	 * redundant INIT state processing. */
 	if(!generate_sub_request(stub_dp->name, stub_dp->namelen, 
-		LDNS_RR_TYPE_NS, qclass, qstate, id, iq,
+		LDNS_RR_TYPE_NS, q->qclass, qstate, id, iq,
 		QUERYTARGETS_STATE, PRIME_RESP_STATE, &subq, 0)) {
 		verbose(VERB_ALGO, "could not prime stub");
 		(void)error_response(qstate, id, LDNS_RCODE_SERVFAIL);
@@ -781,8 +787,14 @@ generate_ns_check(struct module_qstate* qstate, struct iter_qstate* iq, int id)
 static int
 forward_request(struct module_qstate* qstate, struct iter_qstate* iq)
 {
-	struct delegpt* dp = forwards_lookup(qstate->env->fwds, 
-		iq->qchase.qname, iq->qchase.qclass);
+	struct delegpt* dp;
+	uint8_t* delname = iq->qchase.qname;
+	size_t delnamelen = iq->qchase.qname_len;
+	/* strip one label off of DS query to lookup higher for it */
+	if(iq->qchase.qtype == LDNS_RR_TYPE_DS 
+		&& !dname_is_root(iq->qchase.qname))
+		dname_remove_label(&delname, &delnamelen);
+	dp = forwards_lookup(qstate->env->fwds, delname, iq->qchase.qclass);
 	if(!dp) 
 		return 0;
 	/* send recursion desired to forward addr */
@@ -1030,8 +1042,7 @@ processInitRequest2(struct module_qstate* qstate, struct iter_qstate* iq,
 		&qstate->qinfo);
 
 	/* Check to see if we need to prime a stub zone. */
-	if(prime_stub(qstate, iq, ie, id, iq->qchase.qname, 
-		iq->qchase.qclass)) {
+	if(prime_stub(qstate, iq, ie, id, &iq->qchase)) {
 		/* A priming sub request was made */
 		return 0;
 	}
@@ -1258,7 +1269,10 @@ processQueryTargets(struct module_qstate* qstate, struct iter_qstate* iq,
 	}
 
 	tf_policy = 0;
-	if(iq->depth <= ie->max_dependency_depth) {
+	/* < not <=, because although the array is large enough for <=, the
+	 * generated query will immediately be discarded due to depth and
+	 * that servfail is cached, which is not good as opportunism goes. */
+	if(iq->depth < ie->max_dependency_depth) {
 		tf_policy = ie->target_fetch_policy[iq->depth];
 	}
 
@@ -1499,9 +1513,14 @@ processQueryResponse(struct module_qstate* qstate, struct iter_qstate* iq,
 			   /* we know that all other NS rrsets are scrubbed
 			    * away, thus on referral only one is left.
 			    * see if that equals the query name... */
-			&& reply_find_rrset_section_ns(iq->response->rep,
+			&& ( /* auth section, but sometimes in answer section*/
+			  reply_find_rrset_section_ns(iq->response->rep,
 				qstate->qinfo.qname, qstate->qinfo.qname_len,
 				LDNS_RR_TYPE_NS, qstate->qinfo.qclass)
+			  || reply_find_rrset_section_an(iq->response->rep,
+				qstate->qinfo.qname, qstate->qinfo.qname_len,
+				LDNS_RR_TYPE_NS, qstate->qinfo.qclass)
+			  )
 		    )) {
 			/* Store the referral under the current query */
 			if(!iter_dns_store(qstate->env, &iq->response->qinfo,

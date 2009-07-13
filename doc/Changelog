@@ -1,6 +1,115 @@
+13 July 2009: Wouter
+	- Fix for crash at start on windows.
+
+9 July 2009: Wouter
+	- tag for release 1.3.1.
+	- trunk has version 1.3.2.
+
+7 July 2009: Wouter
+	- iana portlist updated.
+
+6 July 2009: Wouter
+	- prettier error handling in SSL setup.
+	- makedist.sh uname fix (same as ldns).
+	- updated fedora spec file.
+
+3 July 2009: Wouter
+	- fixup linking when ldnsdir is "".
+
+30 June 2009: Wouter
+	- more lenient truncation checks.
+
+29 June 2009: Wouter
+	- ldns trunk r2959 imported as tarball, because of solaris cc compile
+	  support for c99.  r2960 for better configure.
+	- better wrongly_truncated check.
+	- On Linux, fragment IPv6 datagrams to the IPv6 minimum MTU, to
+	  avoid dropped packets at routers.
+
+26 June 2009: Wouter
+	- Fix EDNS fallback when EDNS works for short answers but long answers
+	  are dropped.
+
+22 June 2009: Wouter
+	- fixup iter priv strict aliasing while preserving size of sockaddr.
+	- iana portlist updated.  (one less port allocated, one more fraction
+	  of a bit for security!)
+	- updated fedora specfile in contrib from Paul Wouters.
+	
+19 June 2009: Wouter
+	- Fixup strict aliasing warning in iter priv code.
+	  and config_file code.
+	- iana portlist updated.
+	- harden-referral-path: handle cases where NS is in answer section.
+
+18 June 2009: Wouter
+	- Fix of message parse bug where (specifically) an NSEC and RRSIG
+	  in the wrong order would be parsed, but put wrongly into internal
+	  structures so that later validation would fail.
+	- Extreme lenience for wrongly truncated replies where a positive
+	  reply has an NS in the authority but no signatures.  They are
+	  turned into minimal responses with only the (secure) answer.
+	- autoconf 2.63 for configure.
+	- python warnings suppress.  Keep python API away from header files.
+
+17 June 2009: Wouter
+	- CREDITS entry for cz.nic, sponsoring a 'summer of code' that was
+	  used for the python code in unbound. (http://www.nic.cz/vip/ in cz).
+
+16 June 2009: Wouter
+	- Fixup opportunistic target query generation to it does not
+	  generate queries that are known to fail.
+	- Touchup on munin total memory report.
+	- messages picked out of the cache by the iterator are checked
+	  if their cname chain is still correct and if validation status
+	  has to be reexamined.
+
+15 June 2009: Wouter
+	- iana portlist updated.
+
+14 June 2009: Wouter
+	- Fixed bug where cached responses would lose their security
+	  status on second validation, which especially impacted dlv
+	  lookups.  Reported by Hauke Lampe.
+
+13 June 2009: Wouter
+	- bug #254. removed random whitespace from example.conf.
+
+12 June 2009: Wouter
+	- Fixup potential wrong NSEC picked out of the cache.
+	- If unfulfilled callbacks are deleted they are called with an error.
+	- fptr wlist checks for mesh callbacks.
+	- fwd above stub in configuration works.
+
+11 June 2009: Wouter
+	- Fix queries for type DS when forward or stub zones are there.
+	  They are performed to higherup domains, and thus treated as if
+	  going to higher zones when looking up the right forward or stub
+	  server.  This makes a stub pointing to a local server that has
+	  a local view of example.com signed with the same keys as are
+	  publicly used work.  Reported by Johan Ihren.
+	- Added build-unbound-localzone-from-hosts.pl to contrib, from
+	  Dennis DeDonatis.  It converts /etc/hosts into config statements.
+	- same thing fixed for forward-zone and DS, chain of trust from
+	  public internet into the forward-zone works now.  Added unit test.
+
+9 June 2009: Wouter
+	- openssl key files are opened apache-style, when user is root and
+	  before chrooting.  This makes permissions on remote-control key 
+	  files easier to set up.  Fixes bug #251.
+	- flush_type and flush_name remove msg cache entries.
+	- codereview - dp copy bogus setting fix.
+
 8 June 2009: Wouter
 	- Removed RFC5011 REVOKE flag support. Partial 5011 support may cause
 	  inadvertant behaviour.
+	- 1.3.0 tarball for release created.
+	- 1.3.1 development in svn trunk.
+	- iana portlist updated.
+	- fix lint from complaining on ldns/sha.h.
+	- help compiler figure out aliasing in priv_rrset_bad() routine.
+	- fail to configure with python if swig is not found.
+	- unbound_munin_ in contrib uses ps to show rss if sbrk does not work.
 
 3 June 2009: Wouter
 	- fixup bad free() when wrongly encoded DSA signature is seen.
