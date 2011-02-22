@@ -49,3 +49,16 @@ Description: static library, header files, and docs for libunbound
  libunbound performs and validates DNS lookups; it can be used to convert
  hostnames to IP addresses and back and obtain other information from the
  DNS. Cryptographic validation of results is performed with DNSSEC.
+
+Package: python-unbound
+Section: python
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}
+Provides: ${python:Provides}
+XB-Python-Version: ${python:Versions}
+Description: library implementing DNS resolution and validation (Python bindings)
+ Python extension module for libunbound.
+ .
+ libunbound performs and validates DNS lookups; it can be used to convert
+ hostnames to IP addresses and back and obtain other information from the
+ DNS. Cryptographic validation of results is performed with DNSSEC.
