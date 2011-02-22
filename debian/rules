@@ -9,7 +9,7 @@ build-stamp:
 	dh_auto_configure -- \
 		--disable-gost \
 		--disable-rpath \
-		--with-chroot-dir=/var/lib/unbound \
+		--with-chroot-dir=/etc/unbound \
 		--with-pidfile=/var/run/unbound.pid \
 		--with-libevent \
 		--with-pythonmodule \
