@@ -129,7 +129,7 @@ config_create(void)
 	init_outgoing_availports(cfg->outgoing_avail_ports, 65536);
 	if(!(cfg->username = strdup(UB_USERNAME))) goto error_exit;
 #ifdef HAVE_CHROOT
-	if(!(cfg->chrootdir = strdup(CHROOT_DIR))) goto error_exit;
+	if(!(cfg->chrootdir = strdup(""))) goto error_exit;
 #endif
 	if(!(cfg->directory = strdup(RUN_DIR))) goto error_exit;
 	if(!(cfg->logfile = strdup(""))) goto error_exit;
