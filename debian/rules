@@ -11,7 +11,9 @@ build-stamp:
 		--disable-rpath \
 		--with-chroot-dir=/var/lib/unbound \
 		--with-pidfile=/var/run/unbound.pid \
-		--with-libevent
+		--with-libevent \
+		--with-pythonmodule \
+		--with-pyunbound
 	dh_auto_build
 	dh build --after test
 	touch $@
