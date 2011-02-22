@@ -11,8 +11,8 @@ if [ "$1" = configure ]; then
         case "x$ROOT_TRUST_ANCHOR_UPDATE" in
             xtrue|x1|xyes)
                 echo "Updating root trust anchor file..."
-                unbound-anchor -a /etc/unbound/root.key -v
-            ;;
+                unbound-anchor -a /etc/unbound/root.key -v || true
+                ;;
         esac
     fi
 
