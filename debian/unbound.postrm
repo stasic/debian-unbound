@@ -5,4 +5,11 @@ if [ "$1" = remove ]; then
     deluser --quiet unbound >/dev/null || true
 fi
 
+if [ "$1" = purge ]; then
+    rm -f /etc/unbound/unbound_control.key \
+        /etc/unbound/unbound_control.pem \
+        /etc/unbound/unbound_server.key \
+        /etc/unbound/unbound_server.pem
+fi
+
 #DEBHELPER#
