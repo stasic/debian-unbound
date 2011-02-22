@@ -26,9 +26,14 @@ install: build
 	dh_installinit --error-handler=true --restart-after-upgrade
 	dh install --after dh_installinit
 	install -m 0644 doc/example.conf debian/unbound/etc/unbound/unbound.conf
-	install -m 0644 debian/tmp/usr/lib/python2.6/dist-packages/_unbound.so.2.8.0 \
-		debian/python-unbound/usr/lib/pyshared/python2.6/_unbound.so
 	echo '$$named unbound' > debian/unbound/etc/insserv.conf.d/unbound
+
+	# XXX gross hack to prevent python module from linking against everything
+	rm -f _unbound.la
+	sed -i -e 's/^dependency_libs=.*/dependency_libs=''/' libunbound.la
+	make _unbound.la LIBS=""
+	install -m 0644 .libs/_unbound.so.2.*.* \
+		debian/python-unbound/usr/lib/pyshared/python2.6/_unbound.so
 
 binary-arch: install
 	dh binary-arch
