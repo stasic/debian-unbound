@@ -29,6 +29,18 @@ if [ -f /etc/default/$NAME ]; then
             exit 1;
             ;;
     esac
+    case "x$ROOT_TRUST_ANCHOR_UPDATE" in
+        xtrue|x1|xyes)
+            ROOT_TRUST_ANCHOR_UPDATE=true
+            ;;
+        *)
+            ROOT_TRUST_ANCHOR_UPDATE=false
+            ;;
+    esac
+fi
+
+if $ROOT_TRUST_ANCHOR_UPDATE; then
+    unbound-anchor -a /etc/unbound/root.key
 fi
 
 PIDFILE=$(${DAEMON}-checkconf -o pidfile)

@@ -1,3 +1,5 @@
 UNBOUND_ENABLE=true
 
+ROOT_TRUST_ANCHOR_UPDATE=true
+
 #DAEMON_OPTS="-c /etc/unbound/unbound.conf"
