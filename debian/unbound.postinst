@@ -20,6 +20,10 @@ if [ "$1" = configure ]; then
         echo "Creating unbound remote control key material..."
         unbound-control-setup
     fi
+
+    if [ ! -f /etc/unbound/unbound.conf.resolvconf ]; then
+        touch /etc/unbound/unbound.conf.resolvconf
+    fi
 fi
 
 #DEBHELPER#
