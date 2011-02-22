@@ -1,13 +1,15 @@
 unbound (1.4.8-3) unstable; urgency=low
 
   * Convert packaging to git.
+  * Automatically create and remove remote control key material on package
+    configuration and package purge.
   * Set default remote control port to 53953 to avoid conflicting with the
     bind9 package's use of port 953 for rndc.
   * Securely fetch or update the root trust anchor at postinst and before
     starting the unbound daemon if ROOT_TRUST_ANCHOR_UPDATE is set in
     /etc/default/unbound.
 
- -- Robert S. Edmonds <edmonds@debian.org>  Mon, 21 Feb 2011 21:41:10 -0500
+ -- Robert S. Edmonds <edmonds@debian.org>  Mon, 21 Feb 2011 21:49:14 -0500
 
 unbound (1.4.8-2) unstable; urgency=low
 
