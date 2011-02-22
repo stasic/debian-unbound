@@ -187,7 +187,7 @@ config_create(void)
 	cfg->local_zones_nodefault = NULL;
 	cfg->local_data = NULL;
 	cfg->python_script = NULL;
-	cfg->remote_control_enable = 0;
+	cfg->remote_control_enable = 1;
 	cfg->control_ifs = NULL;
 	cfg->control_port = 53953;
 	if(!(cfg->server_key_file = strdup(RUN_DIR"/unbound_server.key"))) 
