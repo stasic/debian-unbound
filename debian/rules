@@ -25,6 +25,7 @@ install: build
 	dh_installinit --error-handler=true --restart-after-upgrade
 	dh install --after dh_installinit
 	echo '$$named unbound' > debian/unbound/etc/insserv.conf.d/unbound
+	install -m 0755 debian/resolvconf debian/unbound/etc/resolvconf/update.d/unbound
 
 	# XXX gross hack to prevent python module from linking against everything
 	rm -f _unbound.la
