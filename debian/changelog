@@ -10,9 +10,14 @@ unbound (1.4.8-3) unstable; urgency=low
     bind9 package's use of port 953 for rndc.
   * Securely fetch or update the root trust anchor at postinst and before
     starting the unbound daemon if ROOT_TRUST_ANCHOR_UPDATE is set in
-    /etc/default/unbound.
+    /etc/default/unbound; closes: #594911.
+  * If unbound is listening on a loopback address, provide this address as
+    a nameserver to resolvconf if RESOLVCONF is enabled in
+    /etc/default/unbound; closes: #562031.
+  * Configure resolvconf discovered nameservers as forwarders if
+    RESOLVCONF_FORWARDERS is enabled in /etc/default/unbound; closes: #567879.
 
- -- Robert S. Edmonds <edmonds@debian.org>  Mon, 21 Feb 2011 22:28:01 -0500
+ -- Robert S. Edmonds <edmonds@debian.org>  Mon, 21 Feb 2011 23:36:23 -0500
 
 unbound (1.4.8-2) unstable; urgency=low
 
