@@ -17,6 +17,7 @@ if [ "$1" = configure ]; then
     fi
 
     if [ ! -f /etc/unbound/unbound_control.key ]; then
+        echo "Creating unbound remote control key material..."
         unbound-control-setup
     fi
 fi
