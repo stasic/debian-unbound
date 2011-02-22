@@ -12,6 +12,7 @@ if [ "$1" = configure ]; then
             xtrue|x1|xyes)
                 echo "Updating root trust anchor file..."
                 unbound-anchor -a /etc/unbound/root.key -v
+            ;;
         esac
     fi
 
