@@ -26,6 +26,7 @@ install: build
 	dh install --after dh_installinit
 	echo '$$named unbound' > debian/unbound/etc/insserv.conf.d/unbound
 	install -m 0755 debian/resolvconf debian/unbound/etc/resolvconf/update.d/unbound
+	install -m 0644 doc/example.conf debian/unbound/usr/share/doc/unbound/examples/unbound.conf
 
 	# XXX gross hack to prevent python module from linking against everything
 	rm -f _unbound.la
