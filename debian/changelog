@@ -1,4 +1,4 @@
-unbound (1.4.8-3) unstable; urgency=low
+unbound (1.4.9-1) unstable; urgency=low
 
   * Convert packaging to git.
   * Configure with --with-pythonmodule.
@@ -7,7 +7,7 @@ unbound (1.4.8-3) unstable; urgency=low
   * Automatically create and remove remote control key material on package
     configuration and package purge.
   * Set default remote control port to 53953 to avoid conflicting with the
-    bind9 package's use of port 953 for rndc.
+    bind9 package's default use of port 953 for rndc.
   * Securely fetch or update the root trust anchor at postinst and before
     starting the unbound daemon if ROOT_TRUST_ANCHOR_UPDATE is set in
     /etc/default/unbound; closes: #594911.
@@ -17,7 +17,7 @@ unbound (1.4.8-3) unstable; urgency=low
   * Configure resolvconf discovered nameservers as forwarders if
     RESOLVCONF_FORWARDERS is enabled in /etc/default/unbound; closes: #567879.
 
- -- Robert S. Edmonds <edmonds@debian.org>  Mon, 21 Feb 2011 23:36:23 -0500
+ -- Robert S. Edmonds <edmonds@debian.org>  Sat, 02 Apr 2011 19:56:50 -0400
 
 unbound (1.4.8-2) unstable; urgency=low
 
