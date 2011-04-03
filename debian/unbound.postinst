@@ -1,5 +1,12 @@
 #!/bin/sh -e
 
+ROOT_TRUST_ANCHOR_UPDATE=false
+ROOT_TRUST_ANCHOR_FILE=/var/lib/unbound/root.key
+
+if [ -f /etc/default/unbound ]; then
+    . /etc/default/unbound
+fi
+
 if [ "$1" = configure ]; then
     if ! getent passwd unbound >/dev/null; then
         adduser --quiet --system --group --no-create-home --home /var/lib/unbound unbound
@@ -11,7 +18,7 @@ if [ "$1" = configure ]; then
         case "x$ROOT_TRUST_ANCHOR_UPDATE" in
             xtrue|x1|xyes)
                 echo "Updating root trust anchor file..."
-                unbound-anchor -a /etc/unbound/root.key -v || true
+                unbound-anchor -a $ROOT_TRUST_ANCHOR_FILE -v || true
                 ;;
         esac
     fi
