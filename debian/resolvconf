@@ -17,8 +17,12 @@ if [ -z "RESOLVCONF_FILES" ]; then
     exit 0
 fi
 
-NS_IPS="$(sed -rne 's/^[[:space:]]*nameserver[[:space:]]+//p' $RESOLVCONF_FILES \
-    | egrep -v '^(127\.|::1)' | sort -u)"
+if [ -n "$RESOLVCONF_FILES" ]; then
+    NS_IPS="$(sed -rne 's/^[[:space:]]*nameserver[[:space:]]+//p' $RESOLVCONF_FILES \
+        | egrep -v '^(127\.|::1)' | sort -u)"
+else
+    NS_IPS=""
+fi
 
 TMP_FILE="$(mktemp)"
 
