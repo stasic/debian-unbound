@@ -1,4 +1,0 @@
-# This file controls whether a root trust anchor is configured or not.
-
-server:
-	auto-trust-anchor-file: "/etc/unbound/root.key"
