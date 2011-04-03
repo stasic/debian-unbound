@@ -10,8 +10,8 @@ if [ "$1" = purge ]; then
         /etc/unbound/unbound_control.pem \
         /etc/unbound/unbound_server.key \
         /etc/unbound/unbound_server.pem
-    rm -f /etc/unbound/root.key
-    rm -f /etc/unbound/unbound.conf.resolvconf
+    rm -f /var/lib/unbound/root.key
+    rm -f /var/lib/unbound/forwarders.conf
 fi
 
 #DEBHELPER#

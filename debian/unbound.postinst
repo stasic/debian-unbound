@@ -28,8 +28,8 @@ if [ "$1" = configure ]; then
         unbound-control-setup
     fi
 
-    if [ ! -f /etc/unbound/unbound.conf.resolvconf ]; then
-        touch /etc/unbound/unbound.conf.resolvconf
+    if [ ! -f /var/lib/unbound/forwarders.conf ]; then
+        touch /var/lib/unbound/forwarders.conf
     fi
 fi
 
