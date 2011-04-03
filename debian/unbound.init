@@ -27,7 +27,6 @@ if [ -f /etc/default/$NAME ]; then
             ;;
         *)
             UNBOUND_ENABLE=false
-            exit 1;
             ;;
     esac
     case "x$ROOT_TRUST_ANCHOR_UPDATE" in
