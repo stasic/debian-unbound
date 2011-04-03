@@ -40,8 +40,8 @@ mv "$TMP_FILE" "$CONF"
 if [ -f "/etc/unbound/unbound_control.key" ]; then
     if [ -n "$NS_IPS" ]; then
         FWD="$(echo $NS_IPS | tr '\n' ' ')"
-        unbound-control forward $FWD 1>/dev/null 2>&1
+        unbound-control forward $FWD 1>/dev/null 2>&1 || true
     else
-        unbound-control forward off 1>/dev/null 2>&1
+        unbound-control forward off 1>/dev/null 2>&1 || true
     fi
 fi
