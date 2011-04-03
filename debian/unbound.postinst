@@ -19,6 +19,7 @@ if [ "$1" = configure ]; then
             xtrue|x1|xyes)
                 echo "Updating root trust anchor file..."
                 unbound-anchor -a $ROOT_TRUST_ANCHOR_FILE -v || true
+                chown unbound:unbound $ROOT_TRUST_ANCHOR_FILE
                 ;;
         esac
     fi
