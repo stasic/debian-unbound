@@ -10,7 +10,7 @@ if [ ! -x /lib/resolvconf/list-records ]; then
     exit 1
 fi
 
-CONF="/etc/unbound/unbound.conf.resolvconf"
+CONF="/var/lib/unbound/forwarders.conf"
 RESOLVCONF_FILES="$(/lib/resolvconf/list-records)"
 
 if [ -z "RESOLVCONF_FILES" ]; then
