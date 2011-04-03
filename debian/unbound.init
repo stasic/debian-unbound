@@ -93,6 +93,7 @@ case "$1" in
         if $UNBOUND_ENABLE; then
             if $ROOT_TRUST_ANCHOR_UPDATE; then
                 unbound-anchor -a $ROOT_TRUST_ANCHOR_FILE
+                chown unbound:unbound $ROOT_TRUST_ANCHOR_FILE
             fi
             log_daemon_msg "Starting $DESC" "$NAME"
             if start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --name $NAME --startas $DAEMON -- $DAEMON_OPTS; then
