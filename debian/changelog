@@ -16,8 +16,11 @@ unbound (1.4.9-1) unstable; urgency=low
     /etc/default/unbound; closes: #562031.
   * Configure resolvconf discovered nameservers as forwarders if
     RESOLVCONF_FORWARDERS is enabled in /etc/default/unbound; closes: #567879.
+  * Don't exit from the init script with an error if UNBOUND_ENABLE is not
+    true; default UNBOUND_ENABLE to true if the default file is missing
+    entirely; closes: #618815.
 
- -- Robert S. Edmonds <edmonds@debian.org>  Sat, 02 Apr 2011 19:56:50 -0400
+ -- Robert S. Edmonds <edmonds@debian.org>  Sat, 02 Apr 2011 20:24:59 -0400
 
 unbound (1.4.8-2) unstable; urgency=low
 
