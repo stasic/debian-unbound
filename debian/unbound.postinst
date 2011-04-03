@@ -17,9 +17,8 @@ if [ "$1" = configure ]; then
         . /etc/default/unbound
         case "x$ROOT_TRUST_ANCHOR_UPDATE" in
             xtrue|x1|xyes)
-                echo "Updating root trust anchor file..."
-                unbound-anchor -a $ROOT_TRUST_ANCHOR_FILE -v || true
-                chown unbound:unbound $ROOT_TRUST_ANCHOR_FILE
+                unbound-anchor -a "$ROOT_TRUST_ANCHOR_FILE" 1>/dev/null 2>&1 || true
+                chown unbound:unbound "$ROOT_TRUST_ANCHOR_FILE" || true
                 ;;
         esac
     fi
