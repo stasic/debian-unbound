@@ -9,7 +9,6 @@
 ### END INIT INFO
 
 NAME=unbound
-UNBOUND_ENABLE=false
 DESC="recursive DNS server"
 DAEMON=/usr/sbin/unbound
 PIDFILE="/var/run/unbound.pid"
@@ -18,6 +17,11 @@ test -x $DAEMON || exit 0
 test -x ${DAEMON}-checkconf || exit 0
 
 . /lib/lsb/init-functions
+
+UNBOUND_ENABLE=true
+ROOT_TRUST_ANCHOR_UPDATE=false
+RESOLVCONF=false
+RESOLVCONF_FORWARDERS=false
 
 if [ -f /etc/default/$NAME ]; then
     . /etc/default/$NAME
