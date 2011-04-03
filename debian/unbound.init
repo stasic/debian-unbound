@@ -92,7 +92,7 @@ case "$1" in
     start)
         if $UNBOUND_ENABLE; then
             if $ROOT_TRUST_ANCHOR_UPDATE; then
-                unbound-anchor -a $ROOT_TRUST_ANCHOR_FILE
+                unbound-anchor -a $ROOT_TRUST_ANCHOR_FILE -v 2>&1 | logger -p daemon.info -t unbound-anchor
                 chown unbound:unbound $ROOT_TRUST_ANCHOR_FILE
             fi
             log_daemon_msg "Starting $DESC" "$NAME"
