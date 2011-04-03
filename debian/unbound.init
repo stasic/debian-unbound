@@ -129,9 +129,20 @@ case "$1" in
         fi
         ;;
 
+    reload)
+        if $UNBOUND_ENABLE; then
+            log_daemon_msg "Reloading $DESC" "$NAME"
+            if start-stop-daemon --stop --pidfile $PIDFILE --signal 1; then
+                log_end_msg 0
+            else
+                log_end_msg 1
+            fi
+        fi
+        ;;
+
     *)
         N=/etc/init.d/$NAME
-        echo "Usage: $N {start|stop|restart|force-reload}" >&2
+        echo "Usage: $N {start|stop|restart|reload|force-reload}" >&2
         exit 1
         ;;
 esac
