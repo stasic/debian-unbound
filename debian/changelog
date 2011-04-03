@@ -1,5 +1,6 @@
 unbound (1.4.9-1) unstable; urgency=low
 
+  * New upstream release.
   * Convert packaging to git.
   * Configure with --with-pythonmodule.
   * Configure with --with-pyunbound.
@@ -21,7 +22,7 @@ unbound (1.4.9-1) unstable; urgency=low
     entirely; closes: #618815.
   * Support /etc/init.d/unbound reload; closes: #620256.
 
- -- Robert S. Edmonds <edmonds@debian.org>  Sat, 02 Apr 2011 20:30:56 -0400
+ -- Robert S. Edmonds <edmonds@debian.org>  Sat, 02 Apr 2011 22:52:16 -0400
 
 unbound (1.4.8-2) unstable; urgency=low
 
