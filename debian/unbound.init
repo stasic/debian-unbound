@@ -123,7 +123,9 @@ case "$1" in
         if $UNBOUND_ENABLE; then
             log_daemon_msg "Restarting $DESC" "$NAME"
             start-stop-daemon --stop --quiet --pidfile $PIDFILE --name $NAME --retry 5
+            do_resolvconf_stop
             if start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --name $NAME --startas $DAEMON -- $DAEMON_OPTS; then
+                do_resolvconf_start
                 log_end_msg 0
             else
                 log_end_msg 1
