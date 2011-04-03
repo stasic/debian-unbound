@@ -6,16 +6,15 @@ if [ ! -x /usr/sbin/unbound ]; then
     exit 0
 fi
 
+if [ ! -f /etc/unbound/unbound_control.key ]; then
+    exit 0
+fi
+
 if [ ! -x /lib/resolvconf/list-records ]; then
     exit 1
 fi
 
-CONF="/var/lib/unbound/forwarders.conf"
 RESOLVCONF_FILES="$(/lib/resolvconf/list-records)"
-
-if [ -z "RESOLVCONF_FILES" ]; then
-    exit 0
-fi
 
 if [ -n "$RESOLVCONF_FILES" ]; then
     NS_IPS="$(sed -rne 's/^[[:space:]]*nameserver[[:space:]]+//p' $RESOLVCONF_FILES \
@@ -24,24 +23,9 @@ else
     NS_IPS=""
 fi
 
-TMP_FILE="$(mktemp)"
-
 if [ -n "$NS_IPS" ]; then
-    echo 'forward-zone:' > $TMP_FILE
-    echo '    name: "."' >> $TMP_FILE
-
-    echo "$NS_IPS" | while read ip; do
-        echo "    forward-addr: $ip" >> $TMP_FILE
-    done
-fi
-
-mv "$TMP_FILE" "$CONF"
-
-if [ -f "/etc/unbound/unbound_control.key" ]; then
-    if [ -n "$NS_IPS" ]; then
-        FWD="$(echo $NS_IPS | tr '\n' ' ')"
-        unbound-control forward $FWD 1>/dev/null 2>&1 || true
-    else
-        unbound-control forward off 1>/dev/null 2>&1 || true
-    fi
+    FWD="$(echo $NS_IPS | tr '\n' ' ')"
+    unbound-control forward $FWD 1>/dev/null 2>&1 || true
+else
+    unbound-control forward off 1>/dev/null 2>&1 || true
 fi
