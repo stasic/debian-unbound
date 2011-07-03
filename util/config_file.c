@@ -189,7 +189,7 @@ config_create(void)
 	cfg->python_script = NULL;
 	cfg->remote_control_enable = 1;
 	cfg->control_ifs = NULL;
-	cfg->control_port = 53953;
+	cfg->control_port = 953;
 	if(!(cfg->server_key_file = strdup(RUN_DIR"/unbound_server.key"))) 
 		goto error_exit;
 	if(!(cfg->server_cert_file = strdup(RUN_DIR"/unbound_server.pem"))) 
