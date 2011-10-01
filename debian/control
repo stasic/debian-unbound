@@ -4,8 +4,8 @@ Priority: optional
 Maintainer: Robert S. Edmonds <edmonds@debian.org>
 Build-Depends: dpkg-dev (>= 1.14.9), debhelper (>= 8.1.3~), doxygen,
  autoconf, automake, autotools-dev, libtool, flex, bison, libldns-dev (>= 1.6.9-2~),
- libssl-dev, libev-libevent-dev, libexpat1-dev, python-all-dev (>= 2.5.4-1~),
- python-support (>= 1.0.0), swig
+ libssl-dev, libev-libevent-dev, libexpat1-dev, python-all-dev (>= 2.6.6-3~),
+ python-support, swig
 Standards-Version: 3.9.2
 Homepage: http://www.unbound.net/
 XS-Python-Version: all

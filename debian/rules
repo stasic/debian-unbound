@@ -5,7 +5,7 @@ DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 LIBRARY = libunbound2
 
 %:
-	dh $@
+	dh $@ --with python-support
 
 build: build-stamp
 build-stamp:
@@ -48,9 +48,12 @@ install: build
 	rm -f _unbound.la
 	sed -i -e 's/^dependency_libs=.*/dependency_libs=''/' libunbound.la
 	make _unbound.la LIBS=""
-	find debian/python-unbound/usr/lib/pyshared -name '*.so.*' -delete
-	install -m 0644 .libs/_unbound.so.2.*.* \
-		debian/python-unbound/usr/lib/pyshared/$(shell pyversions -d)/_unbound.so
+	install -D -m 0644 .libs/_unbound.so.2.*.* \
+		debian/python-unbound/usr/lib/$(shell pyversions -d)/dist-packages/_unbound.so
+	install -m 0644 \
+		pythonmod/unboundmodule.py \
+		libunbound/python/unbound.py \
+		debian/python-unbound/usr/lib/$(shell pyversions -d)/dist-packages
 
 binary-arch: install
 	dh binary-arch
