@@ -14,7 +14,7 @@ Vcs-Git: git://git.debian.org/~edmonds/unbound.git
 
 Package: unbound
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, adduser, openssl
+Depends: ${misc:Depends}, ${shlibs:Depends}, unbound-anchor, adduser, openssl
 Description: validating, recursive, caching DNS resolver
  Unbound is a recursive-only caching DNS server which can perform DNSSEC
  validation of results. It implements only a minimal amount of authoritative
@@ -23,6 +23,17 @@ Description: validating, recursive, caching DNS resolver
  AS112. Stub and forward zones are supported.
  .
  This package contains the unbound daemon.
+
+Package: unbound-anchor
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Replaces: unbound (<< 1.4.13-1)
+Breaks: unbound (<< 1.4.13-1)
+Description: utility to securely fetch the root DNS trust anchor
+ unbound-anchor is a utility which securely fetches or updates the root DNS
+ zone trust anchor. A copy of the current root anchor and root update
+ certificate is embedded in unbound-anchor. RFC 5011 trust anchor tracking is
+ performed, with fallback to an SSL fetch if this fails.
 
 Package: unbound-host
 Architecture: any
