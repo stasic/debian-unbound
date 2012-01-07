@@ -100,7 +100,11 @@ server:
 	# the number of slabs must be a power of 2.
 	# more slabs reduce lock contention, but fragment memory usage.
 	# rrset-cache-slabs: 4
-	
+
+	# the time to live (TTL) value lower bound, in seconds. Default 0.
+	# If more than an hour could easily give trouble due to stale data.
+	# cache-min-ttl: 0
+
 	# the time to live (TTL) value cap for RRsets and messages in the
 	# cache. Items are not cached for longer. In seconds.
 	# cache-max-ttl: 86400
@@ -191,6 +195,9 @@ server:
 	# Log to syslog(3) if yes. The log facility LOG_DAEMON is used to 
 	# log to, with identity "unbound". If yes, it overrides the logfile.
 	# use-syslog: yes 
+
+	# print UTC timestamp in ascii to logfile, default is epoch in seconds.
+	# log-time-ascii: no
 
 	# the pid file. Can be an absolute path outside of chroot/work dir.
 	# pidfile: "@UNBOUND_PIDFILE@"
@@ -284,7 +291,7 @@ server:
 	
 	# File with DLV trusted keys. Same format as trust-anchor-file.
 	# There can be only one DLV configured, it is trusted from root down.
-	# Download https://secure.isc.org/ops/dlv/dlv.isc.org.key
+	# Download http://ftp.isc.org/www/dlv/dlv.isc.org.key
 	# dlv-anchor-file: "dlv.isc.org.key"
 
 	# File with trusted keys for validation. Specify more than one file
@@ -304,6 +311,9 @@ server:
 	# the trusted-keys { name flag proto algo "key"; }; clauses are read.
 	# trusted-keys-file: ""
 	
+	# Ignore chain of trust. Domain is treated as insecure.
+	# domain-insecure: "example.com"
+
 	# Override the date for validation with a specific fixed date.
 	# Do not set this unless you are debugging signature inception
 	# and expiration. "" or "0" turns the feature off. 
@@ -312,6 +322,12 @@ server:
 	# The time to live for bogus data, rrsets and messages. This avoids
 	# some of the revalidation, until the time interval expires. in secs.
 	# val-bogus-ttl: 60
+	
+	# The signature inception and expiration dates are allowed to be off
+	# by 10% of the lifetime of the signature from our local clock.
+	# This leeway is capped with a minimum and a maximum.  In seconds.
+	# val-sig-skew-min: 3600
+	# val-sig-skew-max: 86400
 	
 	# Should additional section of secure message also be kept clean of
 	# unsecure data. Useful to shield the users of this validator from
@@ -380,6 +396,14 @@ server:
 	# you need to do the reverse notation yourself.
 	# local-data-ptr: "192.0.2.3 www.example.com"
 
+# Python config section. To enable:
+# o use --with-pythonmodule to configure before compiling.
+# o list python in the module-config string (above) to enable.
+# o and give a python-script to run.
+python:
+	# Script file to load
+	# python-script: "@UNBOUND_SHARE_DIR@/ubmodule-tst.py"
+
 # Remote control config section. 
 remote-control:
 	# Enable remote control with unbound-control(8) here.
@@ -414,7 +438,7 @@ remote-control:
 # stub-zone:
 #	name: "example.com"
 #	stub-addr: 192.0.2.68
-#	stub-prime: "no"
+#	stub-prime: no
 # stub-zone:
 #	name: "example.org"
 #	stub-host: ns.example.com.

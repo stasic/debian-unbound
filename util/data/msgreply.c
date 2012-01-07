@@ -53,6 +53,8 @@
 
 /** MAX TTL default for messages and rrsets */
 uint32_t MAX_TTL = 3600 * 24 * 10; /* ten days */
+/** MIN TTL default for messages and rrsets */
+uint32_t MIN_TTL = 0;
 
 /** allocate qinfo, return 0 on error */
 static int
@@ -97,6 +99,7 @@ construct_reply_info_base(struct regional* region, uint16_t flags, size_t qd,
 	rep->ar_numrrsets = ar;
 	rep->rrset_count = total;
 	rep->security = sec;
+	rep->authoritative = 0;
 	/* array starts after the refs */
 	if(region)
 		rep->rrsets = (struct ub_packed_rrset_key**)&(rep->ref[0]);
@@ -158,6 +161,8 @@ rdata_copy(ldns_buffer* pkt, struct packed_rrset_data* data, uint8_t* to,
 	/* RFC 2181 Section 8. if msb of ttl is set treat as if zero. */
 	if(*rr_ttl & 0x80000000U)
 		*rr_ttl = 0;
+	if(*rr_ttl < MIN_TTL)
+		*rr_ttl = MIN_TTL;
 	if(*rr_ttl < data->ttl)
 		data->ttl = *rr_ttl;
 

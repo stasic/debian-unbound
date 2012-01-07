@@ -62,6 +62,11 @@
 #include "validator/validator.h"
 #include "validator/val_kcache.h"
 #include "validator/val_kentry.h"
+#include "iterator/iterator.h"
+#include "iterator/iter_fwd.h"
+#include "iterator/iter_delegpt.h"
+#include "services/outbound_list.h"
+#include "services/outside_network.h"
 
 #ifdef HAVE_SYS_TYPES_H
 #  include <sys/types.h>
@@ -279,7 +284,11 @@ add_open(const char* ip, int nr, struct listen_port** list, int noproto_is_err)
 	/* alloc */
 	n = (struct listen_port*)calloc(1, sizeof(*n));
 	if(!n) {
+#ifndef USE_WINSOCK
 		close(fd);
+#else
+		closesocket(fd);
+#endif
 		log_err("out of memory");
 		return 0;
 	}
@@ -371,7 +380,12 @@ int remote_accept_callback(struct comm_point* c, void* arg, int err,
 	if(rc->active >= rc->max_active) {
 		log_warn("drop incoming remote control: too many connections");
 		comm_point_stop_listening(c);
+	close_exit:
+#ifndef USE_WINSOCK
 		close(newfd);
+#else
+		closesocket(newfd);
+#endif
 		return 0;
 	}
 
@@ -379,17 +393,15 @@ int remote_accept_callback(struct comm_point* c, void* arg, int err,
 	n = (struct rc_state*)calloc(1, sizeof(*n));
 	if(!n) {
 		log_err("out of memory");
-		close(newfd);
-		return 0;
+		goto close_exit;
 	}
 	/* start in reading state */
 	n->c = comm_point_create_raw(rc->worker->base, newfd, 0, 
 		&remote_control_callback, n);
 	if(!n->c) {
 		log_err("out of memory");
-		close(newfd);
 		free(n);
-		return 0;
+		goto close_exit;
 	}
 	log_addr(VERB_QUERY, "new control connection from", &addr, addrlen);
 	n->c->do_not_close = 0;
@@ -401,18 +413,16 @@ int remote_accept_callback(struct comm_point* c, void* arg, int err,
 	n->ssl = SSL_new(rc->ctx);
 	if(!n->ssl) {
 		log_crypto_err("could not SSL_new");
-		close(newfd);
 		free(n);
-		return 0;
+		goto close_exit;
 	}
 	SSL_set_accept_state(n->ssl);
         (void)SSL_set_mode(n->ssl, SSL_MODE_AUTO_RETRY);
 	if(!SSL_set_fd(n->ssl, newfd)) {
 		log_crypto_err("could not SSL_set_fd");
-		close(newfd);
 		SSL_free(n->ssl);
 		free(n);
-		return 0;
+		goto close_exit;
 	}
 
 	n->rc = rc;
@@ -843,7 +853,7 @@ print_ext(SSL* ssl, struct stats_info* s)
 
 /** do the stats command */
 static void
-do_stats(SSL* ssl, struct daemon_remote* rc)
+do_stats(SSL* ssl, struct daemon_remote* rc, int reset)
 {
 	struct daemon* daemon = rc->worker->daemon;
 	struct stats_info total;
@@ -851,7 +861,7 @@ do_stats(SSL* ssl, struct daemon_remote* rc)
 	int i;
 	/* gather all thread statistics in one place */
 	for(i=0; i<daemon->num; i++) {
-		server_stats_obtain(rc->worker, daemon->workers[i], &s);
+		server_stats_obtain(rc->worker, daemon->workers[i], &s, reset);
 		if(!print_thread_stats(ssl, i, &s))
 			return;
 		if(i == 0)
@@ -1045,6 +1055,22 @@ do_flush_type(SSL* ssl, struct worker* worker, char* arg)
 	send_ok(ssl);
 }
 
+/** flush statistics */
+static void
+do_flush_stats(SSL* ssl, struct worker* worker)
+{
+	worker_stats_clear(worker);
+	send_ok(ssl);
+}
+
+/** flush requestlist */
+static void
+do_flush_requestlist(SSL* ssl, struct worker* worker)
+{
+	mesh_delete_all(worker->env.mesh);
+	send_ok(ssl);
+}
+
 /**
  * Local info for deletion functions
  */
@@ -1061,6 +1087,8 @@ struct del_info {
 	uint32_t expired;
 	/** number of rrsets removed */
 	size_t num_rrsets;
+	/** number of msgs removed */
+	size_t num_msgs;
 	/** number of key entries removed */
 	size_t num_keys;
 };
@@ -1080,6 +1108,20 @@ zone_del_rrset(struct lruhash_entry* e, void* arg)
 	}
 }
 
+/** callback to delete messages in a zone */
+static void
+zone_del_msg(struct lruhash_entry* e, void* arg)
+{
+	/* entry is locked */
+	struct del_info* inf = (struct del_info*)arg;
+	struct msgreply_entry* k = (struct msgreply_entry*)e->key;
+	if(dname_subdomain_c(k->key.qname, inf->name)) {
+		struct reply_info* d = (struct reply_info*)e->data;
+		d->ttl = inf->expired;
+		inf->num_msgs++;
+	}
+}
+
 /** callback to delete keys in zone */
 static void
 zone_del_kcache(struct lruhash_entry* e, void* arg)
@@ -1092,41 +1134,6 @@ zone_del_kcache(struct lruhash_entry* e, void* arg)
 		d->ttl = inf->expired;
 		inf->num_keys++;
 	}
-}
-
-/** traverse a lruhash */
-static void 
-lruhash_traverse(struct lruhash* h, int wr, 
-	void (*func)(struct lruhash_entry*, void*), void* arg)
-{
-	size_t i;
-	struct lruhash_entry* e;
-
-	lock_quick_lock(&h->lock);
-	for(i=0; i<h->size; i++) {
-		lock_quick_lock(&h->array[i].lock);
-		for(e = h->array[i].overflow_list; e; e = e->overflow_next) {
-			if(wr) {
-				lock_rw_wrlock(&e->lock);
-			} else {
-				lock_rw_rdlock(&e->lock);
-			}
-			(*func)(e, arg);
-			lock_rw_unlock(&e->lock);
-		}
-		lock_quick_unlock(&h->array[i].lock);
-	}
-	lock_quick_unlock(&h->lock);
-}
-
-/** traverse a slabhash */
-static void 
-slabhash_traverse(struct slabhash* sh, int wr, 
-	void (*func)(struct lruhash_entry*, void*), void* arg)
-{
-	size_t i;
-	for(i=0; i<sh->size; i++)
-		lruhash_traverse(sh->array[i], wr, func, arg);
 }
 
 /** remove all rrsets and keys from zone from cache */
@@ -1149,9 +1156,12 @@ do_flush_zone(SSL* ssl, struct worker* worker, char* arg)
 	inf.expired = *worker->env.now;
 	inf.expired -= 3; /* handle 3 seconds skew between threads */
 	inf.num_rrsets = 0;
+	inf.num_msgs = 0;
 	inf.num_keys = 0;
 	slabhash_traverse(&worker->env.rrset_cache->table, 1, 
 		&zone_del_rrset, &inf);
+
+	slabhash_traverse(worker->env.msg_cache, 1, &zone_del_msg, &inf);
 
 	/* and validator cache */
 	idx = modstack_find(&worker->daemon->mods, "validator");
@@ -1162,8 +1172,9 @@ do_flush_zone(SSL* ssl, struct worker* worker, char* arg)
 
 	free(nm);
 
-	(void)ssl_printf(ssl, "ok removed %u rrsets and %u key entries\n",
-		(unsigned)inf.num_rrsets, (unsigned)inf.num_keys);
+	(void)ssl_printf(ssl, "ok removed %u rrsets, %u messages "
+		"and %u key entries\n", (unsigned)inf.num_rrsets, 
+		(unsigned)inf.num_msgs, (unsigned)inf.num_keys);
 }
 
 /** remove name rrset from cache */
@@ -1200,6 +1211,106 @@ do_flush_name(SSL* ssl, struct worker* worker, char* arg)
 	send_ok(ssl);
 }
 
+/** print root forwards */
+static int
+print_root_fwds(SSL* ssl, struct iter_forwards* fwds, uint8_t* root)
+{
+	char buf[257];
+	struct delegpt* dp;
+	struct delegpt_ns* ns;
+	struct delegpt_addr* a;
+	int f = 0;
+	dp = forwards_lookup(fwds, root, LDNS_RR_CLASS_IN);
+	if(!dp) 
+		return ssl_printf(ssl, "off (using root hints)\n");
+	/* if dp is returned it must be the root */
+	log_assert(query_dname_compare(dp->name, root)==0);
+	for(ns = dp->nslist; ns; ns = ns->next) {
+		dname_str(ns->name, buf);
+		if(!ssl_printf(ssl, "%s%s", (f?" ":""), buf))
+			return 0;
+		f = 1;
+	}
+	for(a = dp->target_list; a; a = a->next_target) {
+		addr_to_str(&a->addr, a->addrlen, buf, sizeof(buf));
+		if(!ssl_printf(ssl, "%s%s", (f?" ":""), buf))
+			return 0;
+		f = 1;
+	}
+	return ssl_printf(ssl, "\n");
+}
+
+/** parse args into delegpt */
+static struct delegpt*
+parse_delegpt(SSL* ssl, struct regional* region, char* args, uint8_t* root)
+{
+	/* parse args and add in */
+	char* p = args;
+	char* todo;
+	struct delegpt* dp = delegpt_create(region);
+	struct sockaddr_storage addr;
+	socklen_t addrlen;
+	if(!dp || !delegpt_set_name(dp, region, root)) {
+		(void)ssl_printf(ssl, "error out of memory\n");
+		return NULL;
+	}
+	while(p) {
+		todo = p;
+		p = strchr(p, ' '); /* find next spot, if any */
+		if(p) {
+			*p++ = 0;	/* end this spot */
+			p = skipwhite(p); /* position at next spot */
+		}
+		/* parse address */
+		if(!extstrtoaddr(todo, &addr, &addrlen)) {
+			(void)ssl_printf(ssl, "error cannot parse"
+				" IP address '%s'\n", todo);
+			return NULL;
+		}
+		/* add address */
+		if(!delegpt_add_addr(dp, region, &addr, addrlen, 0, 1)) {
+			(void)ssl_printf(ssl, "error out of memory\n");
+			return NULL;
+		}
+	}
+	return dp;
+}
+
+/** do the status command */
+static void
+do_forward(SSL* ssl, struct worker* worker, char* args)
+{
+	struct iter_forwards* fwd = worker->env.fwds;
+	uint8_t* root = (uint8_t*)"\000";
+	if(!fwd) {
+		(void)ssl_printf(ssl, "error: structure not allocated\n");
+		return;
+	}
+	if(args == NULL || args[0] == 0) {
+		(void)print_root_fwds(ssl, fwd, root);
+		return;
+	}
+	/* set root forwards for this thread. since we are in remote control
+	 * the actual mesh is not running, so we can freely edit it. */
+	/* delete all the existing queries first */
+	mesh_delete_all(worker->env.mesh);
+	/* reset the fwd structure ; the cfg is unchanged (shared by threads)*/
+	/* this reset frees up memory */
+	forwards_apply_cfg(fwd, worker->env.cfg);
+	if(strcmp(args, "off") == 0) {
+		forwards_delete_zone(fwd, LDNS_RR_CLASS_IN, root);
+	} else {
+		struct delegpt* dp;
+		if(!(dp = parse_delegpt(ssl, fwd->region, args, root)))
+			return;
+		if(!forwards_add_zone(fwd, LDNS_RR_CLASS_IN, dp)) {
+			(void)ssl_printf(ssl, "error out of memory\n");
+			return;
+		}
+	}
+	send_ok(ssl);
+}
+
 /** do the status command */
 static void
 do_status(SSL* ssl, struct worker* worker)
@@ -1226,6 +1337,112 @@ do_status(SSL* ssl, struct worker* worker)
 	if(!ssl_printf(ssl, "unbound (pid %d) is running...\n",
 		(int)getpid()))
 		return;
+}
+
+/** get age for the mesh state */
+static void
+get_mesh_age(struct mesh_state* m, char* buf, size_t len, 
+	struct module_env* env)
+{
+	if(m->reply_list) {
+		struct timeval d;
+		struct mesh_reply* r = m->reply_list;
+		/* last reply is the oldest */
+		while(r && r->next)
+			r = r->next;
+		timeval_subtract(&d, env->now_tv, &r->start_time);
+		snprintf(buf, len, "%d.%6.6d", (int)d.tv_sec, (int)d.tv_usec);
+	} else {
+		snprintf(buf, len, "-");
+	}
+}
+
+/** get status of a mesh state */
+static void
+get_mesh_status(struct mesh_area* mesh, struct mesh_state* m, 
+	char* buf, size_t len)
+{
+	enum module_ext_state s = m->s.ext_state[m->s.curmod];
+	const char *modname = mesh->mods.mod[m->s.curmod]->name;
+	size_t l;
+	if(strcmp(modname, "iterator") == 0 && s == module_wait_reply &&
+		m->s.minfo[m->s.curmod]) {
+		/* break into iterator to find out who its waiting for */
+		struct iter_qstate* qstate = (struct iter_qstate*)
+			m->s.minfo[m->s.curmod];
+		struct outbound_list* ol = &qstate->outlist;
+		struct outbound_entry* e;
+		snprintf(buf, len, "%s wait for", modname);
+		l = strlen(buf);
+		buf += l; len -= l;
+		if(ol->first == NULL)
+			snprintf(buf, len, " (empty_list)");
+		for(e = ol->first; e; e = e->next) {
+			snprintf(buf, len, " ");
+			l = strlen(buf);
+			buf += l; len -= l;
+			addr_to_str(&e->qsent->addr, e->qsent->addrlen, 
+				buf, len);
+			l = strlen(buf);
+			buf += l; len -= l;
+		}
+	} else if(s == module_wait_subquery) {
+		/* look in subs from mesh state to see what */
+		char nm[257];
+		struct mesh_state_ref* sub;
+		snprintf(buf, len, "%s wants", modname);
+		l = strlen(buf);
+		buf += l; len -= l;
+		if(m->sub_set.count == 0)
+			snprintf(buf, len, " (empty_list)");
+		RBTREE_FOR(sub, struct mesh_state_ref*, &m->sub_set) {
+			char* t = ldns_rr_type2str(sub->s->s.qinfo.qtype);
+			char* c = ldns_rr_class2str(sub->s->s.qinfo.qclass);
+			dname_str(sub->s->s.qinfo.qname, nm);
+			snprintf(buf, len, " %s %s %s", t, c, nm);
+			l = strlen(buf);
+			buf += l; len -= l;
+			free(t);
+			free(c);
+		}
+	} else {
+		snprintf(buf, len, "%s is %s", modname, strextstate(s));
+	}
+}
+
+/** do the dump_requestlist command */
+static void
+do_dump_requestlist(SSL* ssl, struct worker* worker)
+{
+	struct mesh_area* mesh;
+	struct mesh_state* m;
+	int num = 0;
+	char buf[257];
+	char timebuf[32];
+	char statbuf[10240];
+	if(!ssl_printf(ssl, "thread #%d\n", worker->thread_num))
+		return;
+	if(!ssl_printf(ssl, "#   type cl name    seconds    module status\n"))
+		return;
+	/* show worker mesh contents */
+	mesh = worker->env.mesh;
+	if(!mesh) return;
+	RBTREE_FOR(m, struct mesh_state*, &mesh->all) {
+		char* t = ldns_rr_type2str(m->s.qinfo.qtype);
+		char* c = ldns_rr_class2str(m->s.qinfo.qclass);
+		dname_str(m->s.qinfo.qname, buf);
+		get_mesh_age(m, timebuf, sizeof(timebuf), &worker->env);
+		get_mesh_status(mesh, m, statbuf, sizeof(statbuf));
+		if(!ssl_printf(ssl, "%3d %4s %2s %s %s %s\n", 
+			num, t, c, buf, timebuf, statbuf)) {
+			free(t);
+			free(c);
+			return;
+		}
+		num++;
+		free(t);
+		free(c);
+	}
 }
 
 /** tell other processes to execute the command */
@@ -1260,8 +1477,11 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd,
 	} else if(strncmp(p, "reload", 6) == 0) {
 		do_reload(ssl, rc);
 		return;
+	} else if(strncmp(p, "stats_noreset", 13) == 0) {
+		do_stats(ssl, rc, 0);
+		return;
 	} else if(strncmp(p, "stats", 5) == 0) {
-		do_stats(ssl, rc);
+		do_stats(ssl, rc, 1);
 		return;
 	} else if(strncmp(p, "status", 6) == 0) {
 		do_status(ssl, worker);
@@ -1271,6 +1491,21 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd,
 		return;
 	} else if(strncmp(p, "load_cache", 10) == 0) {
 		if(load_cache(ssl, worker)) send_ok(ssl);
+		return;
+	} else if(strncmp(p, "forward", 7) == 0) {
+		/* must always distribute this cmd */
+		if(rc) distribute_cmd(rc, ssl, cmd);
+		do_forward(ssl, worker, skipwhite(p+7));
+		return;
+	} else if(strncmp(p, "flush_stats", 11) == 0) {
+		/* must always distribute this cmd */
+		if(rc) distribute_cmd(rc, ssl, cmd);
+		do_flush_stats(ssl, worker);
+		return;
+	} else if(strncmp(p, "flush_requestlist", 17) == 0) {
+		/* must always distribute this cmd */
+		if(rc) distribute_cmd(rc, ssl, cmd);
+		do_flush_requestlist(ssl, worker);
 		return;
 	} else if(strncmp(p, "lookup", 6) == 0) {
 		do_lookup(ssl, worker, skipwhite(p+6));
@@ -1301,6 +1536,8 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd,
 		do_flush_type(ssl, worker, skipwhite(p+10));
 	} else if(strncmp(p, "flush", 5) == 0) {
 		do_flush_name(ssl, worker, skipwhite(p+5));
+	} else if(strncmp(p, "dump_requestlist", 16) == 0) {
+		do_dump_requestlist(ssl, worker);
 	} else {
 		(void)ssl_printf(ssl, "error unknown command '%s'\n", p);
 	}
