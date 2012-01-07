@@ -1,3 +1,37 @@
+6 August 2008: Wouter
+	- patch for scrubber that removes ends of CNAMEs, no more DNAMEs
+	  from cache. Remove more irrelevant rrsets from the message.
+	- 1.0.2 svn tag created.
+
+5 August 2008: Wouter
+	- fixup DS test so apex nodata works again (from trunk).
+
+4 August 2008: Wouter
+	- Bug #201 fixup from trunk; fixes segfault on exit cleanup
+	- iana port nrs updated.
+
+30 July 2008: Wouter
+	- fixup DS qtype validation bug. (fix taken from trunk).
+
+21 July 2008: Wouter
+	- #198: nicer entropy warning message. manpage OS hints.
+
+19 July 2008: Wouter
+	- #198: fixup manpage to suggest entropy chroot fix.
+
+18 July 2008: Wouter
+	- branch for 1.0 support.
+
+17 July 2008: Wouter
+	- fix bug #196, compile outside source tree.
+	- fix bug #195, add --with-username=user configure option.
+	- print error and exit if started with config that requires more
+	  fds than the builtin minievent can handle.
+
+16 July 2008: Wouter
+	- made svn tag 1.0.1, trunk now 1.0.2
+	- sha256 checksums enabled in makedist.sh
+
 15 July 2008: Wouter
 	- Follow draft-ietf-dnsop-default-local-zones-06 added reverse
 	  IPv6 example prefix to AS112 default blocklist.

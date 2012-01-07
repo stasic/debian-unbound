@@ -2,13 +2,14 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.56)
 
-AC_INIT(unbound,1.0.1, unbound-bugs@nlnetlabs.nl, unbound)
+AC_INIT(unbound,1.0.2, unbound-bugs@nlnetlabs.nl, unbound)
 
 LIBUNBOUND_CURRENT=0
-LIBUNBOUND_REVISION=13
+LIBUNBOUND_REVISION=14
 LIBUNBOUND_AGE=0
 # 1.0.0 had 0:12:0
 # 1.0.1 had 0:13:0
+# 1.0.2 had 0:14:0
 
 #   Current  -- the number of the binary API that we're implementing
 #   Revision -- which iteration of the implementation of the binary
@@ -79,6 +80,14 @@ AC_ARG_WITH(pidfile,
     UNBOUND_PIDFILE="$UNBOUND_RUN_DIR/unbound.pid")
 AC_SUBST(UNBOUND_PIDFILE)
 AC_DEFINE_UNQUOTED(PIDFILE, ["$UNBOUND_PIDFILE"], [default pidfile location])
+
+AC_ARG_WITH(username, 
+    AC_HELP_STRING([--with-username=user], 
+    [set default user that unbound changes to (default user is unbound)]), 
+    UNBOUND_USERNAME="$withval", 
+    UNBOUND_USERNAME="unbound")
+AC_SUBST(UNBOUND_USERNAME)
+AC_DEFINE_UNQUOTED(UB_USERNAME, ["$UNBOUND_USERNAME"], [default username])
 
 AC_DEFINE(WINVER, 0x0502, [the version of the windows API enabled])
 
@@ -841,11 +850,11 @@ echo "*** ldns library not found (--with-ldns= to specify by hand) ***"
 echo "*** Building ldns library from package included in this one. ***"
 echo "***                                                          ***"
 echo "****************************************************************"
-if test -d ldns-src; then rm -rf ldns-src; fi
-mkdir ldns-src; cp $srcdir/ldns-src.tar.gz ldns-src/ldns-src.tar.gz; (cd ldns-src; gzip -cd ldns-src.tar.gz | tar xf -); rm -f ldns-src/ldns-src.tar.gz
-ldnsdir=`ls -d ldns-src/ldns*`
+if test -d $srcdir/ldns-src; then rm -rf $srcdir/ldns-src; fi
+mkdir $srcdir/ldns-src; cp $srcdir/ldns-src.tar.gz $srcdir/ldns-src/ldns-src.tar.gz; (cd $srcdir/ldns-src; gzip -cd ldns-src.tar.gz | tar xf -); rm -f $srcdir/ldns-src/ldns-src.tar.gz; mv $srcdir/ldns-src $srcdir/ldns-srcb; mv $srcdir/ldns-srcb/ldns* $srcdir/ldns-src; rmdir $srcdir/ldns-srcb
+ldnsdir="ldns-src"
 AC_MSG_NOTICE([Configure $ldnsdir scheduled after config.status])
-AC_CONFIG_SUBDIRS([ldns-src/ldns*])
+AC_CONFIG_SUBDIRS([ldns-src])
 CPPFLAGS="-I$ldnsdir/include $CPPFLAGS"
 LDFLAGS="$LDFLAGS $ldnsdir/*.lo"
 AC_SUBST(ldnsdir)
