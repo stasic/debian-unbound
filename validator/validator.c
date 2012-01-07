@@ -251,9 +251,8 @@ val_error(struct module_qstate* qstate, int id)
 /** 
  * Check to see if a given response needs to go through the validation
  * process. Typical reasons for this routine to return false are: CD bit was
- * on in the original request, the response was already validated, or the
- * response is a kind of message that is unvalidatable (i.e., SERVFAIL,
- * REFUSED, etc.)
+ * on in the original request, or the response is a kind of message that 
+ * is unvalidatable (i.e., SERVFAIL, REFUSED, etc.)
  *
  * @param qstate: query state.
  * @param ret_rc: rcode for this message (if noerror - examine ret_msg).
@@ -292,14 +291,25 @@ needs_validation(struct module_qstate* qstate, int ret_rc,
 		verbose(VERB_ALGO, "cannot validate RRSIG, no sigs on sigs.");
 		return 0;
 	}
+	return 1;
+}
 
+/**
+ * Check to see if the response has already been validated.
+ * @param ret_msg: return msg, can be NULL
+ * @return true if the response has already been validated
+ */
+static int
+already_validated(struct dns_msg* ret_msg)
+{
 	/* validate unchecked, and re-validate bogus messages */
 	if (ret_msg && ret_msg->rep->security > sec_status_bogus)
 	{
-		verbose(VERB_ALGO, "response has already been validated");
-		return 0;
+		verbose(VERB_ALGO, "response has already been validated: %s",
+			sec_status_to_string(ret_msg->rep->security));
+		return 1;
 	}
-	return 1;
+	return 0;
 }
 
 /**
@@ -467,6 +477,37 @@ validate_msg_signatures(struct module_env* env, struct val_env* ve,
 
 	return 1;
 }
+
+/**
+ * Detect wrong truncated response (say from BIND 9.6.1 that is forwarding
+ * and saw the NS record without signatures from a referral).
+ * The positive response has a mangled authority section.
+ * Remove that authority section and the additional section.
+ * @param rep: reply
+ * @return true if a wrongly truncated response.
+ */
+static int
+detect_wrongly_truncated(struct reply_info* rep)
+{
+	size_t i;
+	/* only NS in authority, and it is bogus */
+	if(rep->ns_numrrsets != 1 || rep->an_numrrsets == 0)
+		return 0;
+	if(ntohs(rep->rrsets[ rep->an_numrrsets ]->rk.type) != LDNS_RR_TYPE_NS)
+		return 0;
+	if(((struct packed_rrset_data*)rep->rrsets[ rep->an_numrrsets ]
+		->entry.data)->security == sec_status_secure)
+		return 0;
+	/* answer section is present and secure */
+	for(i=0; i<rep->an_numrrsets; i++) {
+		if(((struct packed_rrset_data*)rep->rrsets[ i ]
+			->entry.data)->security != sec_status_secure)
+			return 0;
+	}
+	verbose(VERB_ALGO, "truncating to minimal response");
+	return 1;
+}
+
 
 /**
  * Given a "positive" response -- a response that contains an answer to the
@@ -1439,17 +1480,36 @@ processValidate(struct module_qstate* qstate, struct val_qstate* vq,
 		vq->chase_reply->security = sec_status_bogus;
 		return 1;
 	}
+	subtype = val_classify_response(qstate->query_flags, &qstate->qinfo,
+		&vq->qchase, vq->orig_msg->rep, vq->rrset_skip);
 
 	/* check signatures in the message; 
 	 * answer and authority must be valid, additional is only checked. */
 	if(!validate_msg_signatures(qstate->env, ve, &vq->qchase, 
 		vq->chase_reply, vq->key_entry)) {
-		verbose(VERB_DETAIL, "Validate: message contains bad rrsets");
-		return 1;
+		/* workaround bad recursor out there that truncates (even
+		 * with EDNS4k) to 512 by removing RRSIG from auth section
+		 * for positive replies*/
+		if((subtype == VAL_CLASS_POSITIVE || subtype == VAL_CLASS_ANY
+			|| subtype == VAL_CLASS_CNAME) &&
+			detect_wrongly_truncated(vq->orig_msg->rep)) {
+			/* truncate the message some more */
+			vq->orig_msg->rep->ns_numrrsets = 0;
+			vq->orig_msg->rep->ar_numrrsets = 0;
+			vq->orig_msg->rep->rrset_count = 
+				vq->orig_msg->rep->an_numrrsets;
+			vq->chase_reply->ns_numrrsets = 0;
+			vq->chase_reply->ar_numrrsets = 0;
+			vq->chase_reply->rrset_count = 
+				vq->chase_reply->an_numrrsets;
+		}
+		else {
+			verbose(VERB_DETAIL, "Validate: message contains "
+				"bad rrsets");
+			return 1;
+		}
 	}
 
-	subtype = val_classify_response(qstate->query_flags, &qstate->qinfo,
-		&vq->qchase, vq->orig_msg->rep, vq->rrset_skip);
 	switch(subtype) {
 		case VAL_CLASS_POSITIVE:
 			verbose(VERB_ALGO, "Validating a positive response");
@@ -1937,6 +1997,10 @@ val_operate(struct module_qstate* qstate, enum module_ev event, int id,
 			qstate->ext_state[id] = module_finished;
 			return;
 		}
+		if(already_validated(qstate->return_msg)) {
+			qstate->ext_state[id] = module_finished;
+			return;
+		}
 		/* create state to start validation */
 		qstate->ext_state[id] = module_error; /* override this */
 		if(!vq) {
@@ -2397,7 +2461,8 @@ process_dlv_response(struct module_qstate* qstate, struct val_qstate* vq,
 	}
 	if(msg->rep->security != sec_status_secure) {
 		vq->dlv_status = dlv_error;
-		verbose(VERB_ALGO, "response is not secure");
+		verbose(VERB_ALGO, "response is not secure, %s",
+			sec_status_to_string(msg->rep->security));
 		return;
 	}
 	/* was the lookup a success? validated DLV? */

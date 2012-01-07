@@ -6,10 +6,10 @@ sinclude(acx_pthread.m4)
 sinclude(acx_python.m4)
 sinclude(ac_pkg_swig.m4)
 
-AC_INIT(unbound, 1.3.0, unbound-bugs@nlnetlabs.nl, unbound)
+AC_INIT(unbound, 1.3.2, unbound-bugs@nlnetlabs.nl, unbound)
 
 LIBUNBOUND_CURRENT=1
-LIBUNBOUND_REVISION=0
+LIBUNBOUND_REVISION=2
 LIBUNBOUND_AGE=0
 # 1.0.0 had 0:12:0
 # 1.0.1 had 0:13:0
@@ -19,6 +19,8 @@ LIBUNBOUND_AGE=0
 # 1.2.0 had 0:17:0
 # 1.2.1 had 0:18:0
 # 1.3.0 had 1:0:0   # ub_cancel and -export-symbols.
+# 1.3.1 had 1:1:0
+# 1.3.2 had 1:2:0
 
 #   Current  -- the number of the binary API that we're implementing
 #   Revision -- which iteration of the implementation of the binary
@@ -312,10 +314,7 @@ if test x_$ub_test_python != x_no; then
       AC_PROG_SWIG
       AC_MSG_CHECKING(SWIG)
       if test ! -x "$SWIG"; then
-         AC_MSG_RESULT(failed, won't build Python module and PyUnbound)
-         AC_SUBST(swig, "")
-         ub_with_pyunbound=no
-         ub_with_pythonmod=no
+         AC_ERROR([failed to find swig tool, install it, or do not build Python module and PyUnbound])
       else
          AC_DEFINE(HAVE_SWIG, 1, [Define if you have Swig libraries and header files.])
          AC_SUBST(swig, "$SWIG")
@@ -410,8 +409,8 @@ large outgoing port ranges.  ])
 		fi
         else
             AC_MSG_RESULT(found in $thedir)
-	    dnl assume /usr is in default path.
-	    if test "$thedir" != "/usr"; then
+	    dnl assume /usr is in default path, do not add "".
+	    if test "$thedir" != "/usr" -a "$thedir" != ""; then
                 LDFLAGS="$LDFLAGS -L$thedir/lib"
 		ACX_RUNTIME_PATH_ADD([$thedir/lib])
 	    fi
@@ -514,9 +513,11 @@ use_ldns_builtin="no"
 AC_ARG_WITH(ldns, AC_HELP_STRING([--with-ldns=PATH], 
 	[specify prefix of path of ldns library to use]), 
 	[ specialldnsdir="$withval"
-	CPPFLAGS="-I$withval/include $CPPFLAGS"
-	LDFLAGS="-L$withval -L$withval/lib $LDFLAGS"
-	ACX_RUNTIME_PATH_ADD([$withval/lib])
+	if test "$withval" != ""; then
+		CPPFLAGS="-I$withval/include $CPPFLAGS"
+		LDFLAGS="-L$withval -L$withval/lib $LDFLAGS"
+		ACX_RUNTIME_PATH_ADD([$withval/lib])
+	fi
 	ldnsdir="$withval"
 	AC_SUBST(ldnsdir)
 ])

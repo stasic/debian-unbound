@@ -496,43 +496,6 @@ answer_norec_from_cache(struct worker* worker, struct query_info* qinfo,
 	return 1;
 }
 
-/** check cname chain in cache reply */
-static int
-check_cache_chain(struct reply_info* rep) {
-	/* check only answer section rrs for matching cname chain.
-	 * the cache may return changed rdata, but owner names are untouched.*/
-	size_t i;
-	uint8_t* sname = rep->rrsets[0]->rk.dname;
-	size_t snamelen = rep->rrsets[0]->rk.dname_len;
-	for(i=0; i<rep->an_numrrsets; i++) {
-		uint16_t t = ntohs(rep->rrsets[i]->rk.type);
-		if(t == LDNS_RR_TYPE_DNAME)
-			continue; /* skip dnames; note TTL 0 not cached */
-		/* verify that owner matches current sname */
-		if(query_dname_compare(sname, rep->rrsets[i]->rk.dname) != 0){
-			/* cname chain broken */
-			return 0;
-		}
-		/* if this is a cname; move on */
-		if(t == LDNS_RR_TYPE_CNAME) {
-			get_cname_target(rep->rrsets[i], &sname, &snamelen);
-		}
-	}
-	return 1;
-}
-
-/** check security status in cache reply */
-static int
-all_rrsets_secure(struct reply_info* rep) {
-	size_t i;
-	for(i=0; i<rep->rrset_count; i++) {
-		if( ((struct packed_rrset_data*)rep->rrsets[i]->entry.data)
-			->security != sec_status_secure )
-			return 0;
-	}
-	return 1;
-}
-
 /** answer query from the cache */
 static int
 answer_from_cache(struct worker* worker, struct query_info* qinfo,
@@ -558,7 +521,7 @@ answer_from_cache(struct worker* worker, struct query_info* qinfo,
 	if(rep->an_numrrsets > 0 && (rep->rrsets[0]->rk.type == 
 		htons(LDNS_RR_TYPE_CNAME) || rep->rrsets[0]->rk.type == 
 		htons(LDNS_RR_TYPE_DNAME))) {
-		if(!check_cache_chain(rep)) {
+		if(!reply_check_cname_chain(rep)) {
 			/* cname chain invalid, redo iterator steps */
 			verbose(VERB_ALGO, "Cache reply: cname chain broken");
 		bail_out:
@@ -590,7 +553,7 @@ answer_from_cache(struct worker* worker, struct query_info* qinfo,
 			"validation");
 		goto bail_out; /* need to validate cache entry first */
 	} else if(rep->security == sec_status_secure) {
-		if(all_rrsets_secure(rep))
+		if(reply_all_rrsets_secure(rep))
 			secure = 1;
 		else	{
 			if(must_validate) {
@@ -1038,12 +1001,8 @@ worker_init(struct worker* worker, struct config_file *cfg,
 			return 0;
 		}
 #endif /* LIBEVENT_SIGNAL_PROBLEM */
-		if(!(worker->rc = daemon_remote_create(worker))) {
-			worker_delete(worker);
-			return 0;
-		}
-		if(!daemon_remote_open_accept(worker->rc, 
-			worker->daemon->rc_ports)) {
+		if(!daemon_remote_open_accept(worker->daemon->rc, 
+			worker->daemon->rc_ports, worker)) {
 			worker_delete(worker);
 			return 0;
 		}
@@ -1052,7 +1011,6 @@ worker_init(struct worker* worker, struct config_file *cfg,
 #endif /* UB_ON_WINDOWS */
 	} else { /* !do_sigs */
 		worker->comsig = NULL;
-		worker->rc = NULL;
 	}
 	seed = (unsigned int)time(NULL) ^ (unsigned int)getpid() ^
 		(((unsigned int)worker->thread_num)<<17);
@@ -1172,7 +1130,6 @@ worker_delete(struct worker* worker)
 	comm_signal_delete(worker->comsig);
 	tube_delete(worker->cmd);
 	comm_timer_delete(worker->stat_timer);
-	daemon_remote_delete(worker->rc);
 	free(worker->ports);
 	if(worker->thread_num == 0) {
 		log_set_time(NULL);
@@ -1287,6 +1244,18 @@ int libworker_handle_service_reply(struct comm_point* ATTR_UNUSED(c),
 void libworker_handle_control_cmd(struct tube* ATTR_UNUSED(tube),
         uint8_t* ATTR_UNUSED(buffer), size_t ATTR_UNUSED(len),
         int ATTR_UNUSED(error), void* ATTR_UNUSED(arg))
+{
+	log_assert(0);
+}
+
+void libworker_fg_done_cb(void* ATTR_UNUSED(arg), int ATTR_UNUSED(rcode),
+        ldns_buffer* ATTR_UNUSED(buf), enum sec_status ATTR_UNUSED(s))
+{
+	log_assert(0);
+}
+
+void libworker_bg_done_cb(void* ATTR_UNUSED(arg), int ATTR_UNUSED(rcode),
+        ldns_buffer* ATTR_UNUSED(buf), enum sec_status ATTR_UNUSED(s))
 {
 	log_assert(0);
 }
