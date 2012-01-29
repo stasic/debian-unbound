@@ -1,3 +1,9 @@
+unbound (1.4.15-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Robert S. Edmonds <edmonds@debian.org>  Sat, 28 Jan 2012 19:49:48 -0500
+
 unbound (1.4.14-2) unstable; urgency=high
 
   * Work around gcc bugs by disabling link time optimization on build
