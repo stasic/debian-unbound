@@ -1,4 +1,4 @@
-.TH "unbound-anchor" "8" "Dec 19, 2011" "NLnet Labs" "unbound 1.4.14"
+.TH "unbound-anchor" "8" "Jan 26, 2012" "NLnet Labs" "unbound 1.4.15"
 .\"
 .\" unbound-anchor.8 -- unbound anchor maintenance utility manual
 .\"
