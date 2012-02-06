@@ -1,3 +1,32 @@
+2 February 2012: Wouter
+	- 1.4.16 release tag.
+
+1 February 2012: Wouter
+	- Fix validation failures (like: validation failure xx: no NSEC3
+	  closest encloser from yy for DS zz. while building chain of trust,
+	  because of a bug in the TTL-fix in 1.4.15, it picked the wrong rdata
+	  for an NSEC3.  Now it does not change rdata, and fixes TTL.
+
+30 January 2012: Wouter
+	- Fix version-number in libtool to be version-info so it produces
+	  libunbound.so.2 like it should.
+
+26 January 2012: Wouter
+	- Tag 1.4.15 (same as 1.4.15rc1), for 1.4.15 release.
+	- trunk 1.4.16; includes changes memset testcode, #424 openindiana,
+	  and keyfile write fixup.
+	- applied patch to support outgoing-interface with ub_ctx_set_option.
+
+23 January 2012: Wouter
+	- Fix memset in test code.
+
+20 January 2012: Wouter
+	- Fix bug #424: compile on OpenIndiana OS with gcc 4.6.2.
+
+19 January 2012: Wouter
+	- Fix to write key files completely to a temporary file, and if that
+	  succeeds, replace the real key file.  So failures leave a useful file.
+
 18 January 2012: Wouter
 	- tag 1.4.15rc1 created
 	- updated libunbound/ubsyms.def and remade tag 1.4.15rc1.
