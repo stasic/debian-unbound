@@ -167,8 +167,8 @@ $ac_distutils_result])
         ac_save_LIBS="$LIBS"
         ac_save_CPPFLAGS="$CPPFLAGS"
 
-        LIBS="$PYTHON_LDFLAGS"
-        CPPFLAGS="$PYTHON_CPPFLAGS"
+        LIBS="$LIBS $PYTHON_LDFLAGS"
+        CPPFLAGS="$CPPFLAGS $PYTHON_CPPFLAGS"
         AC_TRY_LINK([
                 #include <Python.h>
         ],[
